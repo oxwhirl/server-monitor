@@ -1,0 +1,10 @@
+name: server-monitor
+channels:
+- defaults
+- conda-forge
+dependencies:
+- python>=3.9
+- pip>=19.3
+- conda>=4.7
+- pip:
+    - -r ./requirements.txt
