@@ -63,7 +63,7 @@ class GpuInfo:
 
     def usage_str(self, width: int) -> str:
         if self.data is None:
-            return "[white on red]ERROR[/white on red]"
+            return "[bright_white on red]ERROR[/bright_white on red]"
 
         usage_str_parts = []
         for _, i, usage_percent in self.data[['index', 'utilization.gpu']].itertuples():
@@ -99,7 +99,7 @@ class CpuInfo:
         if (self.usage_counts is None or
             self.load_avg is None or
             self.num_cpus is None):
-            return "[white on red]ERROR[/white on red]"
+            return "[bright_white on red]ERROR[/bright_white on red]"
 
         visual_usage_length = width
         usage_fraction = self.load_avg / self.num_cpus
