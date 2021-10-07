@@ -42,13 +42,13 @@ from rich.table import Table
 
 
 def color_for_usage_fraction(fraction: float) -> str:
-    assert 0.0 <= fraction <= 1.0, fraction
+    assert 0.0 <= fraction, fraction
     thresholds_colors = (
         (0.00, 'bright_white'),
         (0.25, 'green1'),
         (0.50, 'bright_yellow'),
         (0.75, 'yellow'),
-        (1.0, 'red'),
+        (float('inf'), 'red'),
     )
 
     color = next((color for threshold, color in thresholds_colors
