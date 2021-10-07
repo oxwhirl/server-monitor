@@ -4,8 +4,9 @@ The CPU usage is computed as `[CPU load average] / [number of CPUs]` and
 presented as a colored bar like in htop (e.g. `[||         16.2%]`). The GPU
 info column presents an array where each element correspond to a machine's GPU
  and the element's color indicates that GPU's utilization. The colors change
-from `white -> green -> yellow -> red` corresponding to utilization thresholds
-of `0%, 25%, 50%, 75%`.
+from `white -> green -> yellow -> orange -> red` corresponding to utilization
+thresholds of `<=0%, <=25%, <=50%, <=75%, <=100%`.
+
 
 Known problems:
 - If your ssh requests ProxyCommand/ProxyJump through linux.cs.ox.ac.uk, you
@@ -45,12 +46,14 @@ def color_for_usage_fraction(fraction: float) -> str:
     thresholds_colors = (
         (0.00, 'bright_white'),
         (0.25, 'green1'),
-        (0.50, 'yellow'),
-        (0.75, 'red'),
+        (0.50, 'bright_yellow'),
+        (0.75, 'yellow'),
+        (1.0, 'red'),
     )
 
-    color = next((color for threshold, color in thresholds_colors[::-1]
-                  if threshold <= fraction))
+    color = next((color for threshold, color in thresholds_colors
+                      if fraction <= threshold))
+
     return color
 
 
