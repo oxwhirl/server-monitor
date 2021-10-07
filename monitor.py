@@ -1,4 +1,11 @@
-"""WhiRL GPU monitor using rich-based TUI.
+"""WhiRL server monitor using rich-based TUI.
+
+The CPU usage is computed as `[CPU load average] / [number of CPUs]` and
+presented as a colored bar like in htop (e.g. `[||         16.2%]`). The GPU
+info column presents an array where each element correspond to a machine's GPU
+ and the element's color indicates that GPU's utilization. The colors change
+from `white -> green -> yellow -> red` corresponding to utilization thresholds
+of `0%, 25%, 50%, 75%`.
 
 Known problems:
 - If your ssh requests ProxyCommand/ProxyJump through linux.cs.ox.ac.uk, you
