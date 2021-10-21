@@ -42,7 +42,7 @@ from .cpu import CpuFetcher, CpuInfo
 
 
 def setup_logging(level):
-    logging_path = Path(__file__).parent.parent.parent / "monitor.log"
+    logging_path = Path(__file__).parent.parent / "monitor.log"
     logging.basicConfig(filename=logging_path, level=level)
 
 
