@@ -1,9 +1,9 @@
 # Server Monitor
-A simple script that allows parallel monitoring of multi-server (gpu and cpu) utilization.
+A simple script that allows parallel monitoring of multi-server gpu and cpu utilization.
 
 The CPU usage is computed as `[CPU load average] / [number of CPUs]` and presented as a colored bar like in htop (e.g. `[||         16.2%]`). The GPU info column presents an array where each element correspond to a machine's GPU and the element's color indicates that GPU's utilization. The colors change from `white -> green -> yellow -> orange -> red` corresponding to utilization thresholds of `<=0%, <=25%, <=50%, <=75%, <=100%`.
 
-If you see any issues, please [open an issue](../../issues/new), or even better, open fix the issue and [submit a pull request](../../compare).
+If you see any issues, please [open an issue](../../issues/new), or even better, fix the issue and [submit a pull request](../../compare).
 
 ## Usage
 
