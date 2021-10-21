@@ -4,8 +4,8 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from io import StringIO
-from fetcher_base import StatFetcher
-from utils import run_command, color_for_usage_fraction
+from .fetcher_base import StatFetcher
+from .utils import run_command, color_for_usage_fraction
 from typing import Optional
 
 LOG = logging.getLogger(__name__)

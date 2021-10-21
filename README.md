@@ -14,7 +14,8 @@ $ CONDA_ENV_NAME="$(cat ./environment.yml | grep 'name: ' | awk '{ print $2}')" 
   conda env remove -y --name "${CONDA_ENV_NAME}"; \
   conda env create -v -f ./environment.yml -n "${CONDA_ENV_NAME}" && \
   conda activate "${CONDA_ENV_NAME}"
-$ GPU_MACHINES=(gandalf gimli) && python -m monitor "${GPU_MACHINES[@]}"
+$ python setup.py develop
+$ GPU_MACHINES=(gandalf gimli) && server-monitor "${GPU_MACHINES[@]}"
 ```
 
 Should output something like:

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 import logging
 import math
 import shlex
-from fetcher_base import StatFetcher
-from utils import color_for_usage_fraction, run_command
+from .fetcher_base import StatFetcher
+from .utils import color_for_usage_fraction, run_command
 
 LOG = logging.getLogger(__name__)
 

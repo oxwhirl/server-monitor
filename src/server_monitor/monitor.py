@@ -26,6 +26,7 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 import fileinput
 import logging
 import time
@@ -36,12 +37,13 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from gpu import GpuFetcher, GpuInfo
-from cpu import CpuFetcher, CpuInfo
+from .gpu import GpuFetcher, GpuInfo
+from .cpu import CpuFetcher, CpuInfo
 
 
 def setup_logging(level):
-    logging.basicConfig(filename="monitor.log", level=level)
+    logging_path = Path(__file__).parent.parent.parent / "monitor.log"
+    logging.basicConfig(filename=logging_path, level=level)
 
 
 async def fetch_host_info(hostname, fetchers):
@@ -116,16 +118,18 @@ def get_parser():
         "-j",
         "--threads",
         type=int,
-        default=-1,
+        default=10,
     )
     parser.add_argument("--one-off", action="store_true", default=False)
     parser.add_argument("--interval", type=int, default=1)
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
     return parser
 
 
 def main():
     config = get_parser().parse_args()
-    setup_logging(level=logging.INFO)
+    if config.verbose:
+        setup_logging(level=logging.INFO)
     hostnames = config.hostnames
     console = Console()
 
