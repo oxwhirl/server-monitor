@@ -90,6 +90,7 @@ class CpuAndRamFetcher(StatFetcher):
             Optional[CpuInfo], Optional[RamInfo]]:
         top_command_parts = (
             "ssh",
+            "-oBatchMode=yes",
             hostname,
             "top",
             "-b",
@@ -98,6 +99,7 @@ class CpuAndRamFetcher(StatFetcher):
 
         num_cpus_command_parts = (
             "ssh",
+            "-oBatchMode=yes",
             hostname,
             "grep -c",
             shlex.quote("^processor"),
@@ -106,6 +108,7 @@ class CpuAndRamFetcher(StatFetcher):
 
         ram_command_parts = (
             "ssh",
+            "-oBatchMode=yes",
             hostname,
             "free",
             "-k",

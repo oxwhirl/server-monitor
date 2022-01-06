@@ -47,6 +47,7 @@ class GpuFetcher(StatFetcher):
     async def fetch_data(self, hostname: str) -> pd.DataFrame:
         command_parts = (
             "ssh",
+            "-oBatchMode=yes",
             hostname,
             "nvidia-smi",
             "--query-gpu="
