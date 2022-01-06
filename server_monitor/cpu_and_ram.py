@@ -1,14 +1,19 @@
-import re
 import asyncio
 from asyncio.runners import run
-from typing import Optional, Tuple
 from collections import Counter
 from dataclasses import dataclass
+import io
 import logging
 import math
+import re
 import shlex
+from typing import Optional, Tuple
+
+import pandas as pd
+
 from .fetcher_base import StatFetcher
 from .utils import color_for_usage_fraction, run_command
+
 
 LOG = logging.getLogger(__name__)
 
@@ -48,16 +53,16 @@ class CpuInfo:
 class RamInfo:
     usage_breakdown: Optional[Counter]
     total_ram: Optional[float]
-    ram_usage: Optional[float]
+    used_ram: Optional[float]
 
     def usage_str(self, width: int) -> str:
         if (self.usage_breakdown is None
             or self.total_ram is None
-            or self.ram_usage is None):
+            or self.used_ram is None):
             return "[bright_white on red]ERROR[/bright_white on red]"
 
         visual_usage_length = width
-        usage_fraction = self.ram_usage / self.total_ram
+        usage_fraction = self.used_ram / self.total_ram
         usage_str = f"{usage_fraction * 100:.1f}%"
         usage_space = visual_usage_length - len(usage_str)
         usage_bars = min(int(math.ceil(usage_space * usage_fraction)), usage_space)
@@ -99,10 +104,18 @@ class CpuAndRamFetcher(StatFetcher):
             shlex.quote("/proc/cpuinfo"),
         )
 
+        ram_command_parts = (
+            "ssh",
+            hostname,
+            "free",
+            "-k",
+        )
+
         if self.sem is None:
-            top_result, num_cpus_result = await asyncio.gather(
+            top_result, num_cpus_result, ram_result = await asyncio.gather(
                 run_command(top_command_parts),
                 run_command(num_cpus_command_parts),
+                run_command(ram_command_parts),
             )
         else:
             # if the semaphore is not None, we have to avoid separate parallel
@@ -110,16 +123,20 @@ class CpuAndRamFetcher(StatFetcher):
             # by the semaphore.
             top_result = await run_command(top_command_parts)
             num_cpus_result = await run_command(num_cpus_command_parts)
+            ram_result = await run_command(ram_command_parts)
 
-        if num_cpus_result["returncode"] != 0 or top_result["returncode"] != 0:
+        if (num_cpus_result["returncode"] != 0
+            or top_result["returncode"] != 0
+            or ram_result["returncode"] != 0):
 
             cpu_info = CpuInfo(usage_counts=None, load_avg=None, num_cpus=None)
             ram_info = RamInfo(
-                usage_breakdown=None, ram_usage=None, total_ram=None)
+                usage_breakdown=None, used_ram=None, total_ram=None)
             LOG.error(
-                f"num_cpus_result or top_result has a non-zero return code. \n"
-                f"Num_cpus_result: {num_cpus_result['returncode']}\n"
+                f"ram_result or num_cpus_result or top_result has a non-zero return code. \n"
+                f"num_cpus_result: {num_cpus_result['returncode']}\n"
                 f"top_result: {top_result['returncode']}"
+                f"ram_result: {ram_result['returncode']}"
             )
             if num_cpus_result["returncode"] != 0:
                 LOG.error(f"Num CPUs Stdout: {num_cpus_result['stdout']}")
@@ -127,6 +144,9 @@ class CpuAndRamFetcher(StatFetcher):
             if top_result["returncode"] != 0:
                 LOG.error(f"Top stdout: {top_result['stdout']}")
                 LOG.error(f"Top stderr: {top_result['stderr']}")
+            if ram_result["returncode"] != 0:
+                LOG.error(f"ram stdout: {ram_result['stdout']}")
+                LOG.error(f"ram stderr: {ram_result['stderr']}")
 
             return cpu_info, ram_info
 
@@ -136,26 +156,10 @@ class CpuAndRamFetcher(StatFetcher):
 
         load_avg = float(top_lines[0].split()[-1])
 
-        ram_line = top_lines[3]
-
-        def parse_ram_information(ram_line: str) -> Tuple[float, float]:
-            total_ram_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]total",
-                                             ram_line)
-            ram_usage_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]used",
-                                             ram_line)
-
-            if total_ram_string is None or ram_usage_string is None:
-                logging.info(f"{hostname=}, Unable to parse ram line: {ram_line}")
-                raise ValueError(f"Unable to parse ram line: {ram_line}")
-
-            total_ram = float(total_ram_string.groups()[0])
-            ram_usage = float(ram_usage_string.groups()[0])
-
-            logging.info(f"{hostname=}, {total_ram=}, {ram_usage=}, {ram_line=}")
-
-            return total_ram, ram_usage
-
-        total_ram, ram_usage = parse_ram_information(ram_line)
+        ram_text = ram_result["stdout"]
+        ram_data_frame = pd.read_csv(io.StringIO(ram_text), sep="\s+")
+        total_ram = ram_data_frame['total']['Mem:']
+        used_ram = ram_data_frame['used']['Mem:']
 
         cpu_usage_counts: Counter[dict[str, int]] = Counter()
         ram_usage_breakdown: Counter[dict[str, float]] = Counter()
@@ -175,7 +179,7 @@ class CpuAndRamFetcher(StatFetcher):
 
         ram_info = RamInfo(
             usage_breakdown=ram_usage_breakdown,
-            ram_usage=ram_usage,
+            used_ram=used_ram,
             total_ram=total_ram)
 
         return cpu_info, ram_info
