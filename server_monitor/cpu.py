@@ -1,6 +1,6 @@
 import asyncio
 from asyncio.runners import run
-from typing import Optional
+from typing import Optional, Tuple
 from collections import Counter
 from dataclasses import dataclass
 import logging
@@ -43,11 +43,45 @@ class CpuInfo:
         return visual_usage_str
 
 
-class CpuFetcher(StatFetcher):
-    def __init__(self, sem=None):
-        super(CpuFetcher, self).__init__(sem=sem)
+@dataclass
+class RamInfo:
+    usage_breakdown: Optional[Counter]
+    total_memory: Optional[float]
+    memory_usage: Optional[float]
 
-    async def fetch_data(self, hostname: str) -> Optional[CpuInfo]:
+    def usage_str(self, width: int) -> str:
+        if (self.usage_breakdown is None
+            or self.total_memory is None
+            or self.memory_usage is None):
+            return "[bright_white on red]ERROR[/bright_white on red]"
+
+        visual_usage_length = width
+        usage_fraction = self.memory_usage / self.total_memory
+        usage_str = f"{usage_fraction * 100:.1f}%"
+        usage_space = visual_usage_length - len(usage_str)
+        usage_bars = min(int(math.ceil(usage_space * usage_fraction)), usage_space)
+
+        color = color_for_usage_fraction(usage_fraction)
+
+        visual_usage_str = "".join(
+            (
+                r"[",
+                (f"[{color}]{'|' * usage_bars}[/{color}]"),
+                (" " * (usage_space - usage_bars)),
+                usage_str,
+                "]",
+            )
+        )
+
+        return visual_usage_str
+
+
+class CpuAndRamFetcher(StatFetcher):
+    def __init__(self, sem=None):
+        super(CpuAndRamFetcher, self).__init__(sem=sem)
+
+    async def fetch_data(self, hostname: str) -> Tuple[
+            Optional[CpuInfo], Optional[RamInfo]]:
         top_command_parts = (
             "ssh",
             hostname,
@@ -93,19 +127,34 @@ class CpuFetcher(StatFetcher):
             return cpu_info
 
         num_cpus = int(num_cpus_result["stdout"].strip("\n"))
+
         top_lines = top_result["stdout"].splitlines()
 
         load_avg = float(top_lines[0].split()[-1])
 
-        usage_counts: Counter[dict[str, int]] = Counter()
+        memory_line_parts = top_lines[3].split()
+        total_memory = float(memory_line_parts[3])
+        memory_usage = float(memory_line_parts[-4])
+
+        cpu_usage_counts: Counter[dict[str, int]] = Counter()
+        ram_usage_breakdown: Counter[dict[str, float]] = Counter()
         for top_line in top_lines[7:]:
             top_line_split = top_line.split()
             user = top_line_split[1]
             cpu_percentage = float(top_line_split[8])
-            usage_counts[user] += int(cpu_percentage / (100.0 * float(num_cpus)))
+            ram_percentage = float(top_line_split[9])
+            cpu_usage_counts[user] += int(cpu_percentage / (100.0 * float(num_cpus)))
+            ram_usage_breakdown[user] += ram_percentage
 
         cpu_info = CpuInfo(
-            usage_counts=usage_counts, load_avg=load_avg, num_cpus=num_cpus
+            usage_counts=cpu_usage_counts,
+            load_avg=load_avg,
+            num_cpus=num_cpus,
         )
 
-        return cpu_info
+        ram_info = RamInfo(
+            usage_breakdown=ram_usage_breakdown,
+            memory_usage=memory_usage,
+            total_memory=total_memory)
+
+        return cpu_info, ram_info

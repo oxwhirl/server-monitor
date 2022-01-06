@@ -38,7 +38,7 @@ from rich.live import Live
 from rich.table import Table
 
 from .gpu import GpuFetcher, GpuInfo
-from .cpu import CpuFetcher, CpuInfo
+from .cpu import CpuAndRamFetcher, CpuInfo, RamInfo
 
 
 def setup_logging(level):
@@ -57,7 +57,7 @@ async def fetch_host_infos(hostnames, threads: int = -1):
     # because otherwise the Semaphore's _loop variable is out of sync.
     # See https://stackoverflow.com/a/55918049 for more details.
     sem = asyncio.Semaphore(threads) if threads > 0 else None
-    fetchers = [CpuFetcher(sem=sem), GpuFetcher(sem=sem)]
+    fetchers = [CpuAndRamFetcher(sem=sem), GpuFetcher(sem=sem)]
     host_infos = await asyncio.gather(
         *[fetch_host_info(hostname, fetchers) for hostname in hostnames]
     )
@@ -68,6 +68,7 @@ async def fetch_host_infos(hostnames, threads: int = -1):
 class MachineInfo:
     name: str
     cpu: Optional[CpuInfo]
+    ram: Optional[RamInfo]
     gpu: Optional[GpuInfo]
 
 
@@ -78,9 +79,10 @@ def generate_machine_infos(hostnames: Sequence[str], threads: int = -1):
         MachineInfo(
             name=hostname,
             cpu=cpu_info,
+            ram=ram_info,
             gpu=GpuInfo(data=gpu_info),
         )
-        for hostname, (cpu_info, gpu_info) in zip(hostnames, host_infos)
+        for hostname, ((cpu_info, ram_info), gpu_info) in zip(hostnames, host_infos)
     ]
 
     return machine_infos
@@ -93,18 +95,28 @@ def create_process_table(
     machine_infos = generate_machine_infos(hostnames, threads=threads)
 
     hostname_header = "hostname"
-    table = Table(hostname_header, "CPU %", "GPU compute %", box=rich.box.SIMPLE)
+    table = Table(hostname_header, "CPU %", "RAM %", "GPU compute %", box=rich.box.SIMPLE)
 
-    gpu_compute_width = 3 + 2 * max(
+    padding_width = 3
+
+    gpu_compute_width = padding_width + 2 * max(
         machine_info.gpu.usage_str_len for machine_info in machine_infos
     )
-    hostname_width = 3 + max(map(len, [*hostnames, hostname_header]))
-    cpu_width = width - (gpu_compute_width + hostname_width) - 3
+    hostname_width = padding_width + max(map(len, [*hostnames, hostname_header]))
+
+    ram_and_cpu_width = (
+        width
+        - (gpu_compute_width + hostname_width)
+        - (padding_width + 1) * 2)
+
+    cpu_width = int(ram_and_cpu_width // 2 + ram_and_cpu_width % 2)
+    ram_width = int(ram_and_cpu_width // 2)
 
     for machine_info in machine_infos:
         table.add_row(
             str(machine_info.name),
             machine_info.cpu.usage_str(width=cpu_width),
+            machine_info.ram.usage_str(width=ram_width),
             machine_info.gpu.usage_str(width=gpu_compute_width),
         )
 
