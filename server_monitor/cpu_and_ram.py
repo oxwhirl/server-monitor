@@ -1,3 +1,4 @@
+import re
 import asyncio
 from asyncio.runners import run
 from typing import Optional, Tuple
@@ -113,6 +114,8 @@ class CpuAndRamFetcher(StatFetcher):
         if num_cpus_result["returncode"] != 0 or top_result["returncode"] != 0:
 
             cpu_info = CpuInfo(usage_counts=None, load_avg=None, num_cpus=None)
+            ram_info = RamInfo(
+                usage_breakdown=None, memory_usage=None, total_memory=None)
             LOG.error(
                 f"num_cpus_result or top_result has a non-zero return code. \n"
                 f"Num_cpus_result: {num_cpus_result['returncode']}\n"
@@ -124,7 +127,8 @@ class CpuAndRamFetcher(StatFetcher):
             if top_result["returncode"] != 0:
                 LOG.error(f"Top stdout: {top_result['stdout']}")
                 LOG.error(f"Top stderr: {top_result['stderr']}")
-            return cpu_info
+
+            return cpu_info, ram_info
 
         num_cpus = int(num_cpus_result["stdout"].strip("\n"))
 
@@ -132,9 +136,26 @@ class CpuAndRamFetcher(StatFetcher):
 
         load_avg = float(top_lines[0].split()[-1])
 
-        memory_line_parts = top_lines[3].split()
-        total_memory = float(memory_line_parts[3])
-        memory_usage = float(memory_line_parts[-4])
+        memory_line = top_lines[3]
+
+        def parse_memory_information(memory_line: str) -> Tuple[float, float]:
+            total_memory_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]total",
+                                             memory_line)
+            memory_usage_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]used",
+                                             memory_line)
+
+            if total_memory_string is None or memory_usage_string is None:
+                logging.info(f"{hostname=}, Unable to parse memory line: {memory_line}")
+                raise ValueError(f"Unable to parse memory line: {memory_line}")
+
+            total_memory = float(total_memory_string.groups()[0])
+            memory_usage = float(memory_usage_string.groups()[0])
+
+            logging.info(f"{hostname=}, {total_memory=}, {memory_usage=}, {memory_line=}")
+
+            return total_memory, memory_usage
+
+        total_memory, memory_usage = parse_memory_information(memory_line)
 
         cpu_usage_counts: Counter[dict[str, int]] = Counter()
         ram_usage_breakdown: Counter[dict[str, float]] = Counter()
