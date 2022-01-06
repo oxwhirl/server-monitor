@@ -38,7 +38,7 @@ from rich.live import Live
 from rich.table import Table
 
 from .gpu import GpuFetcher, GpuInfo
-from .cpu import CpuAndRamFetcher, CpuInfo, RamInfo
+from .cpu_and_ram import CpuAndRamFetcher, CpuInfo, RamInfo
 
 
 def setup_logging(level):
