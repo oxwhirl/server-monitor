@@ -47,17 +47,17 @@ class CpuInfo:
 @dataclass
 class RamInfo:
     usage_breakdown: Optional[Counter]
-    total_memory: Optional[float]
-    memory_usage: Optional[float]
+    total_ram: Optional[float]
+    ram_usage: Optional[float]
 
     def usage_str(self, width: int) -> str:
         if (self.usage_breakdown is None
-            or self.total_memory is None
-            or self.memory_usage is None):
+            or self.total_ram is None
+            or self.ram_usage is None):
             return "[bright_white on red]ERROR[/bright_white on red]"
 
         visual_usage_length = width
-        usage_fraction = self.memory_usage / self.total_memory
+        usage_fraction = self.ram_usage / self.total_ram
         usage_str = f"{usage_fraction * 100:.1f}%"
         usage_space = visual_usage_length - len(usage_str)
         usage_bars = min(int(math.ceil(usage_space * usage_fraction)), usage_space)
@@ -115,7 +115,7 @@ class CpuAndRamFetcher(StatFetcher):
 
             cpu_info = CpuInfo(usage_counts=None, load_avg=None, num_cpus=None)
             ram_info = RamInfo(
-                usage_breakdown=None, memory_usage=None, total_memory=None)
+                usage_breakdown=None, ram_usage=None, total_ram=None)
             LOG.error(
                 f"num_cpus_result or top_result has a non-zero return code. \n"
                 f"Num_cpus_result: {num_cpus_result['returncode']}\n"
@@ -136,26 +136,26 @@ class CpuAndRamFetcher(StatFetcher):
 
         load_avg = float(top_lines[0].split()[-1])
 
-        memory_line = top_lines[3]
+        ram_line = top_lines[3]
 
-        def parse_memory_information(memory_line: str) -> Tuple[float, float]:
-            total_memory_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]total",
-                                             memory_line)
-            memory_usage_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]used",
-                                             memory_line)
+        def parse_ram_information(ram_line: str) -> Tuple[float, float]:
+            total_ram_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]total",
+                                             ram_line)
+            ram_usage_string = re.search( r"([-+]?\d*\.?\d+|[-+]?\d+)[+\ ]used",
+                                             ram_line)
 
-            if total_memory_string is None or memory_usage_string is None:
-                logging.info(f"{hostname=}, Unable to parse memory line: {memory_line}")
-                raise ValueError(f"Unable to parse memory line: {memory_line}")
+            if total_ram_string is None or ram_usage_string is None:
+                logging.info(f"{hostname=}, Unable to parse ram line: {ram_line}")
+                raise ValueError(f"Unable to parse ram line: {ram_line}")
 
-            total_memory = float(total_memory_string.groups()[0])
-            memory_usage = float(memory_usage_string.groups()[0])
+            total_ram = float(total_ram_string.groups()[0])
+            ram_usage = float(ram_usage_string.groups()[0])
 
-            logging.info(f"{hostname=}, {total_memory=}, {memory_usage=}, {memory_line=}")
+            logging.info(f"{hostname=}, {total_ram=}, {ram_usage=}, {ram_line=}")
 
-            return total_memory, memory_usage
+            return total_ram, ram_usage
 
-        total_memory, memory_usage = parse_memory_information(memory_line)
+        total_ram, ram_usage = parse_ram_information(ram_line)
 
         cpu_usage_counts: Counter[dict[str, int]] = Counter()
         ram_usage_breakdown: Counter[dict[str, float]] = Counter()
@@ -175,7 +175,7 @@ class CpuAndRamFetcher(StatFetcher):
 
         ram_info = RamInfo(
             usage_breakdown=ram_usage_breakdown,
-            memory_usage=memory_usage,
-            total_memory=total_memory)
+            ram_usage=ram_usage,
+            total_ram=total_ram)
 
         return cpu_info, ram_info
