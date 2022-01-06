@@ -7,6 +7,9 @@ class StatFetcher:
     def __init__(self, sem: asyncio.Semaphore = None):
         self.sem = sem
 
+    async def fetch_data(self, hostname):
+        raise NotImplementedError
+
     async def fetch(self, hostname):
         if self.sem is not None:
             async with self.sem:
