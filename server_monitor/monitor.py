@@ -26,9 +26,9 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 import fileinput
 import logging
+from pathlib import Path
 import time
 from typing import Optional
 
@@ -37,8 +37,11 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from .gpu import GpuFetcher, GpuInfo
-from .cpu_and_ram import CpuAndRamFetcher, CpuInfo, RamInfo
+from .cpu_and_ram import CpuAndRamFetcher
+from .cpu_and_ram import CpuInfo
+from .cpu_and_ram import RamInfo
+from .gpu import GpuFetcher
+from .gpu import GpuInfo
 
 
 def setup_logging(level):
@@ -91,11 +94,12 @@ def generate_machine_infos(hostnames: Sequence[str], threads: int = -1):
 def create_process_table(
     hostnames: Sequence[str], width: int, height: int, threads: int = -1
 ) -> Table:
-
     machine_infos = generate_machine_infos(hostnames, threads=threads)
 
     hostname_header = "hostname"
-    table = Table(hostname_header, "CPU %", "RAM %", "GPU compute %", box=rich.box.SIMPLE)
+    table = Table(
+        hostname_header, "CPU %", "RAM %", "GPU compute %", box=rich.box.SIMPLE
+    )
 
     padding_width = 3
 
@@ -105,9 +109,8 @@ def create_process_table(
     hostname_width = padding_width + max(map(len, [*hostnames, hostname_header]))
 
     ram_and_cpu_width = (
-        width
-        - (gpu_compute_width + hostname_width)
-        - (padding_width + 1) * 2)
+        width - (gpu_compute_width + hostname_width) - (padding_width + 1) * 2
+    )
 
     cpu_width = int(ram_and_cpu_width // 2 + ram_and_cpu_width % 2)
     ram_width = int(ram_and_cpu_width // 2)

@@ -12,8 +12,8 @@ from typing import Optional, Tuple
 import pandas as pd
 
 from .fetcher_base import StatFetcher
-from .utils import color_for_usage_fraction, run_command
-
+from .utils import color_for_usage_fraction
+from .utils import run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -56,9 +56,11 @@ class RamInfo:
     used_ram: Optional[float]
 
     def usage_str(self, width: int) -> str:
-        if (self.usage_breakdown is None
+        if (
+            self.usage_breakdown is None
             or self.total_ram is None
-            or self.used_ram is None):
+            or self.used_ram is None
+        ):
             return "[bright_white on red]ERROR[/bright_white on red]"
 
         visual_usage_length = width
@@ -86,8 +88,9 @@ class CpuAndRamFetcher(StatFetcher):
     def __init__(self, sem=None):
         super(CpuAndRamFetcher, self).__init__(sem=sem)
 
-    async def fetch_data(self, hostname: str) -> Tuple[
-            Optional[CpuInfo], Optional[RamInfo]]:
+    async def fetch_data(
+        self, hostname: str
+    ) -> Tuple[Optional[CpuInfo], Optional[RamInfo]]:
         top_command_parts = (
             "ssh",
             "-oBatchMode=yes",
@@ -128,13 +131,13 @@ class CpuAndRamFetcher(StatFetcher):
             num_cpus_result = await run_command(num_cpus_command_parts)
             ram_result = await run_command(ram_command_parts)
 
-        if (num_cpus_result["returncode"] != 0
+        if (
+            num_cpus_result["returncode"] != 0
             or top_result["returncode"] != 0
-            or ram_result["returncode"] != 0):
-
+            or ram_result["returncode"] != 0
+        ):
             cpu_info = CpuInfo(usage_counts=None, load_avg=None, num_cpus=None)
-            ram_info = RamInfo(
-                usage_breakdown=None, used_ram=None, total_ram=None)
+            ram_info = RamInfo(usage_breakdown=None, used_ram=None, total_ram=None)
             LOG.error(
                 f"ram_result or num_cpus_result or top_result has a non-zero return code. \n"
                 f"num_cpus_result: {num_cpus_result['returncode']}\n"
@@ -161,8 +164,8 @@ class CpuAndRamFetcher(StatFetcher):
 
         ram_text = ram_result["stdout"]
         ram_data_frame = pd.read_csv(io.StringIO(ram_text), sep="\s+")
-        total_ram = ram_data_frame['total']['Mem:']
-        used_ram = ram_data_frame['used']['Mem:']
+        total_ram = ram_data_frame["total"]["Mem:"]
+        used_ram = ram_data_frame["used"]["Mem:"]
 
         cpu_usage_counts: Counter[dict[str, int]] = Counter()
         ram_usage_breakdown: Counter[dict[str, float]] = Counter()
@@ -181,8 +184,7 @@ class CpuAndRamFetcher(StatFetcher):
         )
 
         ram_info = RamInfo(
-            usage_breakdown=ram_usage_breakdown,
-            used_ram=used_ram,
-            total_ram=total_ram)
+            usage_breakdown=ram_usage_breakdown, used_ram=used_ram, total_ram=total_ram
+        )
 
         return cpu_info, ram_info
