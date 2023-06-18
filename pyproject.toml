@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "server-monitor"
+version = "0.0.1"
+authors = [
+    { name = "Kristian Hartikainen", email = "kristian.hartikainen@gmail.com" },
+]
+description = "A light-weight package for monitoring CPU and GPU usage on WhiRL servers"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dynamic = ["readme", "dependencies"]
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/oxwhirl/server-monitor"
+
+[project.scripts]
+server-monitor = "server_monitor.monitor:main"
+
+[options]
+install_requires = []
+
+[tool.setuptools.dynamic]
+readme = { file = ["README.md", "text/markdown"] }
+dependencies = { file = ["requirements.txt"] }
