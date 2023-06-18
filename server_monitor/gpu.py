@@ -1,12 +1,15 @@
-import pandas as pd
-import re
 import asyncio
-import logging
 from dataclasses import dataclass
 from io import StringIO
-from .fetcher_base import StatFetcher
-from .utils import run_command, color_for_usage_fraction
+import logging
+import re
 from typing import Optional
+
+import pandas as pd
+
+from .fetcher_base import StatFetcher
+from .utils import color_for_usage_fraction
+from .utils import run_command
 
 LOG = logging.getLogger(__name__)
 
